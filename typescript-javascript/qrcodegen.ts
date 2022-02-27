@@ -23,9 +23,6 @@
 
 "use strict";
 
-
-namespace qrcodegen {
-	
 	type bit  = number;
 	type byte = number;
 	type int  = number;
@@ -58,8 +55,8 @@ namespace qrcodegen {
 		// Unicode code points (not UTF-16 code units) if the low error correction level is used. The smallest possible
 		// QR Code version is automatically chosen for the output. The ECC level of the result may be higher than the
 		// ecl argument if it can be done without increasing the version.
-		public static encodeText(text: string, ecl: QrCode.Ecc): QrCode {
-			const segs: Array<QrSegment> = qrcodegen.QrSegment.makeSegments(text);
+		public static encodeText(text: string, ecl: Ecc): QrCode {
+			const segs: Array<QrSegment> = QrSegment.makeSegments(text);
 			return QrCode.encodeSegments(segs, ecl);
 		}
 		
@@ -68,8 +65,8 @@ namespace qrcodegen {
 		// This function always encodes using the binary segment mode, not any text mode. The maximum number of
 		// bytes allowed is 2953. The smallest possible QR Code version is automatically chosen for the output.
 		// The ECC level of the result may be higher than the ecl argument if it can be done without increasing the version.
-		public static encodeBinary(data: Readonly<Array<byte>>, ecl: QrCode.Ecc): QrCode {
-			const seg: QrSegment = qrcodegen.QrSegment.makeBytes(data);
+		public static encodeBinary(data: Readonly<Array<byte>>, ecl: Ecc): QrCode {
+			const seg: QrSegment = QrSegment.makeBytes(data);
 			return QrCode.encodeSegments([seg], ecl);
 		}
 		
@@ -85,7 +82,7 @@ namespace qrcodegen {
 		// This function allows the user to create a custom sequence of segments that switches
 		// between modes (such as alphanumeric and byte) to encode text in less space.
 		// This is a mid-level API; the high-level API is encodeText() and encodeBinary().
-		public static encodeSegments(segs: Readonly<Array<QrSegment>>, ecl: QrCode.Ecc,
+		public static encodeSegments(segs: Readonly<Array<QrSegment>>, ecl: Ecc,
 				minVersion: int = 1, maxVersion: int = 40,
 				mask: int = -1, boostEcl: boolean = true): QrCode {
 			
@@ -108,7 +105,7 @@ namespace qrcodegen {
 			}
 			
 			// Increase the error correction level while the data still fits in the current version number
-			for (const newEcl of [QrCode.Ecc.MEDIUM, QrCode.Ecc.QUARTILE, QrCode.Ecc.HIGH]) {  // From low to high
+			for (const newEcl of [Ecc.MEDIUM, Ecc.QUARTILE, Ecc.HIGH]) {  // From low to high
 				if (boostEcl && dataUsedBits <= QrCode.getNumDataCodewords(version, newEcl) * 8)
 					ecl = newEcl;
 			}
@@ -177,7 +174,7 @@ namespace qrcodegen {
 				public readonly version: int,
 				
 				// The error correction level used in this QR Code.
-				public readonly errorCorrectionLevel: QrCode.Ecc,
+				public readonly errorCorrectionLevel: Ecc,
 				
 				dataCodewords: Readonly<Array<byte>>,
 				
@@ -361,7 +358,7 @@ namespace qrcodegen {
 		// codewords appended to it, based on this object's version and error correction level.
 		private addEccAndInterleave(data: Readonly<Array<byte>>): Array<byte> {
 			const ver: int = this.version;
-			const ecl: QrCode.Ecc = this.errorCorrectionLevel;
+			const ecl: Ecc = this.errorCorrectionLevel;
 			if (data.length != QrCode.getNumDataCodewords(ver, ecl))
 				throw "Invalid argument";
 			
@@ -571,7 +568,7 @@ namespace qrcodegen {
 		// Returns the number of 8-bit data (i.e. not error correction) codewords contained in any
 		// QR Code of the given version number and error correction level, with remainder bits discarded.
 		// This stateless pure function could be implemented as a (40*4)-cell lookup table.
-		private static getNumDataCodewords(ver: int, ecl: QrCode.Ecc): int {
+		private static getNumDataCodewords(ver: int, ecl: Ecc): int {
 			return Math.floor(QrCode.getNumRawDataModules(ver) / 8) -
 				QrCode.ECC_CODEWORDS_PER_BLOCK    [ecl.ordinal][ver] *
 				QrCode.NUM_ERROR_CORRECTION_BLOCKS[ecl.ordinal][ver];
@@ -750,7 +747,7 @@ namespace qrcodegen {
 			let bb: Array<bit> = []
 			for (const b of data)
 				appendBits(b, 8, bb);
-			return new QrSegment(QrSegment.Mode.BYTE, data.length, bb);
+			return new QrSegment(Mode.BYTE, data.length, bb);
 		}
 		
 		
@@ -764,7 +761,7 @@ namespace qrcodegen {
 				appendBits(parseInt(digits.substr(i, n), 10), n * 3 + 1, bb);
 				i += n;
 			}
-			return new QrSegment(QrSegment.Mode.NUMERIC, digits.length, bb);
+			return new QrSegment(Mode.NUMERIC, digits.length, bb);
 		}
 		
 		
@@ -783,7 +780,7 @@ namespace qrcodegen {
 			}
 			if (i < text.length)  // 1 character remaining
 				appendBits(QrSegment.ALPHANUMERIC_CHARSET.indexOf(text.charAt(i)), 6, bb);
-			return new QrSegment(QrSegment.Mode.ALPHANUMERIC, text.length, bb);
+			return new QrSegment(Mode.ALPHANUMERIC, text.length, bb);
 		}
 		
 		
@@ -818,7 +815,7 @@ namespace qrcodegen {
 				appendBits(assignVal, 21, bb);
 			} else
 				throw "ECI assignment value out of range";
-			return new QrSegment(QrSegment.Mode.ECI, 0, bb);
+			return new QrSegment(Mode.ECI, 0, bb);
 		}
 		
 		
@@ -844,7 +841,7 @@ namespace qrcodegen {
 		// but the constraint isn't checked. The given bit buffer is cloned and stored.
 		public constructor(
 				// The mode indicator of this segment.
-				public readonly mode: QrSegment.Mode,
+				public readonly mode: Mode,
 				
 				// The length of this segment's unencoded data. Measured in characters for
 				// numeric/alphanumeric/kanji mode, bytes for byte mode, and 0 for ECI mode.
@@ -911,18 +908,10 @@ namespace qrcodegen {
 		private static readonly ALPHANUMERIC_CHARSET: string = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 		
 	}
-	
-}
-
 
 
 /*---- Public helper enumeration ----*/
 
-namespace qrcodegen.QrCode {
-	
-	type int = number;
-	
-	
 	/* 
 	 * The error correction level in a QR Code symbol. Immutable.
 	 */
@@ -945,17 +934,11 @@ namespace qrcodegen.QrCode {
 			public readonly formatBits: int) {}
 		
 	}
-}
 
 
 
 /*---- Public helper enumeration ----*/
 
-namespace qrcodegen.QrSegment {
-	
-	type int = number;
-	
-	
 	/* 
 	 * Describes how a segment's data bits are interpreted. Immutable.
 	 */
@@ -988,4 +971,4 @@ namespace qrcodegen.QrSegment {
 		}
 		
 	}
-}
+
