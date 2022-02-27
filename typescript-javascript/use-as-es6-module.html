@@ -1,0 +1,19 @@
+<script type="module">
+import {QrCode, Ecc} from './qrcodegen.js';
+
+const qr = QrCode.encodeText("Hello, world!", Ecc.MEDIUM);
+
+const ctx = document.createElement('canvas').getContext('2d');
+document.body.appendChild(ctx.canvas);
+const scale = 4;
+ctx.canvas.width = qr.size * scale;
+ctx.canvas.height = qr.size * scale;
+ctx.scale(scale, scale);
+for (let y = 0; y < qr.size; y++) {
+    for (let x = 0; x < qr.size; x++) {
+        if (qr.getModule(x, y)) {
+          ctx.fillRect(x, y, 1, 1);
+        }
+    }
+}
+</script>
